@@ -1,0 +1,772 @@
+{
+package nodes
+
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"math"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"unicode"
+	"unicode/utf8"
+)
+
+//TODO From OPTIONS
+var parseCursor = false
+var cursorSymbol interface{} = nil
+var allowLeadingWildcards = false
+}
+
+start
+  = Space* query:OrQuery? trailing:OptionalSpace {
+    trailingNode, _ := trailing.(INode)
+    if trailingNode != nil && trailingNode.GetType() == TypeCursor {
+        cursorNode := trailingNode.(*CursorNode)
+        out := cursorNode.Copy()
+        out.SetSuggestionTypes([]string{"conjunction"})
+        return out, nil
+    }
+    if query != nil {
+        return query, nil
+    }
+    //fieldArg := NewWildcardNode("*")
+    //valueArg := NewWildcardNode("*")
+    fieldArg := NewWildcardNode(WildcardSymbol)
+    valueArg := NewWildcardNode(WildcardSymbol)
+    isPhraseArg := NewLiteralNode(nil)
+    return NewFunctionIs(fieldArg, valueArg, isPhraseArg), nil
+  /*
+    if trailing.kind == "cursor" {
+      return {
+        ...trailing,
+        suggestionTypes: ['conjunction']
+      }
+    }
+    if query != nil {
+      return query
+    }
+    return nodeTypes.function.buildNode("is", "*", "*")
+    */
+  }
+
+OrQuery
+  = &{ return true, nil /* errors.New("errorOnLuceneSyntax") */ } LuceneQuery
+  / left:AndQuery Or right:OrQuery {
+  	leftNode, _ := left.(INode)
+  	rightNode, _ := right.(INode)
+  	if leftNode != nil && leftNode.GetType() == TypeCursor {
+  		return leftNode, nil
+  	}
+  	if rightNode != nil && rightNode.GetType() == TypeCursor {
+  		return rightNode, nil
+  	}
+  	return NewFunctionOr(leftNode, rightNode), nil
+
+    //const cursor = [left, right].find(node => node.kind == "cursor")
+    //if cursor != nil {
+    //  return cursor
+    //}
+    //return NewFunctionNode('or', [left, right])
+  }
+  / AndQuery
+
+AndQuery
+  = left:NotQuery And right:AndQuery {
+	leftNode, _ := left.(INode)
+	rightNode, _ := right.(INode)
+
+	if leftNode != nil && leftNode.GetType() == TypeCursor {
+		return leftNode, nil
+	}
+	if rightNode != nil && rightNode.GetType() == TypeCursor {
+		return rightNode, nil
+	}
+	return NewFunctionAnd(leftNode, rightNode), nil
+	//return NewFunctionNode("and", []interface{}{leftNode, rightNode}), nil
+    //const cursor = [left, right].find(node => node.kind == "cursor")
+    //if cursor != nil {
+    //  return cursor
+    //}
+    //return NewFunctionNode("and", [left, right])
+  }
+  / NotQuery
+
+NotQuery
+  = Not query:SubQuery {
+  	queryNode, _ := query.(INode)
+  	if queryNode != nil && queryNode.GetType() == TypeCursor {
+  		return queryNode, nil
+  	}
+  	return NewFunctionNot(queryNode), nil
+    //return NewFunctionNode("not", []interface{}{query}), nil
+    //if query.kind == "cursor" {
+    //  return query
+    //}
+    //return buildFunctionNode("not", [query])
+  }
+  / SubQuery
+
+SubQuery
+  = '(' Space* query:OrQuery trailing:OptionalSpace ')' {
+    trailingNode, _ := trailing.(INode)
+    if trailingNode != nil && trailingNode.GetType() == TypeCursor {
+        cursorNode := trailingNode.(*CursorNode)
+        out := cursorNode.Copy()
+        out.SetSuggestionTypes([]string{"conjunction"})
+        return out, nil
+    }
+    return query, nil
+    //if trailing.kind == "cursor" {
+    //  return {
+    //    ...trailing,
+    //    suggestionTypes: ["conjunction"]
+    //  }
+    //}
+    //return query
+  }
+  / NestedQuery
+
+NestedQuery
+  = field:Field Space* ':' Space* '{' Space* query:OrQuery trailing:OptionalSpace '}' {
+	fieldNode, _ := field.(INode)
+	queryNode, _ := query.(INode)
+	if queryNode != nil && queryNode.GetType() == TypeCursor {
+		var v string
+		if fieldNode != nil {
+			v = fmt.Sprintf("%v", fieldNode.GetValue())
+		}
+		clonedNode := queryNode.(*CursorNode).Copy()
+		if len(clonedNode.GetNestedPath()) > 0 {
+			clonedNode.SetNestedPath(v + "." + clonedNode.GetNestedPath())
+		} else {
+			clonedNode.SetNestedPath(v)
+		}
+		return clonedNode, nil
+	}
+
+	trailingNode, _ := trailing.(INode)
+	if trailingNode != nil && trailingNode.GetType() == TypeCursor {
+		clonedNode := trailingNode.(*CursorNode).Copy()
+		clonedNode.SetSuggestionTypes([]string{"conjunction"})
+		return clonedNode, nil
+	}
+
+	return NewFunctionNested(fieldNode, queryNode), nil
+  /*
+       if query.kind == "cursor" {
+        return {
+          ...query,
+          nestedPath: query.nestedPath ? `${field.value}.${query.nestedPath}` : field.value,
+        }
+      }
+
+      if trailing.kind == "cursor" {
+        return {
+          ...trailing,
+          suggestionTypes: ["conjunction"]
+        }
+      }
+      return buildFunctionNode("nested", [field, query])
+      */
+    }
+    / Expression
+
+Expression
+  = FieldRangeExpression
+  / FieldValueExpression
+  / ValueExpression
+
+Field "fieldName"
+  = Literal
+
+FieldRangeExpression
+  = field:Field Space* operator:RangeOperator Space* value:Literal {
+	valueNode, _ := value.(INode)
+	if valueNode != nil && valueNode.GetType() == TypeCursor {
+		cursorNode := valueNode.(*CursorNode)
+		out := cursorNode.Copy()
+		out.SetSuggestionTypes([]string{"conjunction"})
+		return out, nil
+	}
+
+    var fieldNode INode
+    switch f := field.(type) {
+        case INode: fieldNode = f
+        //case string: fieldNode, _ = FromLiteralExpression(f, nil)
+        default: fieldNode = NewLiteralNode(f)
+    }
+
+	opNode := NewLiteralNode(operator)
+	return NewFunctionRange(fieldNode, opNode, valueNode), nil
+
+    //if value.kind == "cursor" {
+    //  return {
+    //    ...value,
+    //    suggestionTypes: ["conjunction"]
+    //  }
+    //}
+    //const range = buildNamedArgNode(operator, value)
+    //return buildFunctionNode("range", [field, range])
+  }
+
+FieldValueExpression
+  = field:Field Space* ':' Space* partial:ListOfValues {
+    fieldNode, _ := field.(INode)
+	partialNode, _ := partial.(INode)
+	if partialNode != nil && partialNode.GetType() == TypeCursor {
+		cursorNode := partialNode.(*CursorNode)
+		out := cursorNode.Copy()
+		fieldNode, _ := field.(INode)
+		if fieldNode != nil {
+			out.SetFieldName(fmt.Sprintf("%v", fieldNode.GetValue()))
+		}
+		out.SetSuggestionTypes([]string{"value", "conjunction"})
+		return out, nil
+	}
+
+	fn, _ := partial.(func(field INode) INode)
+	if fn == nil {
+		return nil, errors.New("invalid fn")
+	}
+
+	return fn(fieldNode), nil
+  /*
+    if partial.kind == "cursor" {
+      return {
+        ...partial,
+        fieldName: field.value,
+        suggestionTypes: ["value", "conjunction"]
+      }
+    }
+    return partial(field)
+    */
+  }
+
+ValueExpression
+  = partial:Value {
+  partialNode, _ := partial.(INode)
+  if partialNode != nil && partialNode.GetType() == TypeCursor {
+      cursorNode := partialNode.(*CursorNode)
+      fieldName := Trim(cursorNode.GetPrefix() + cursorNode.GetSuffix())
+      out := cursorNode.Copy()
+      out.SetFieldName(fieldName)
+      out.SetSuggestionTypes([]string{"field", "operator", "conjunction"})
+      return out, nil
+  }
+
+  fn, _ := partial.(func(field INode) INode)
+  if fn == nil {
+     return nil, errors.New("invalid fn")
+  }
+  field := NewLiteralNode(nil)
+  return fn(field), nil
+
+  /*
+    if partial.kind == "cursor" {
+      const fieldName = `${partial.prefix}${partial.suffix}`.trim()
+      return {
+        ...partial,
+        fieldName,
+        suggestionTypes: ["field", "operator", "conjunction"]
+      }
+    }
+    const field = buildLiteralNode(nil)
+    return partial(field)
+    */
+  }
+
+ListOfValues
+  = '(' Space* partial:OrListOfValues trailing:OptionalSpace ')' {
+  	trailingNode, _ := trailing.(INode)
+      if trailingNode != nil && trailingNode.GetType() == TypeCursor {
+        cursorNode := trailingNode.(*CursorNode)
+      	out := cursorNode.Copy()
+      	out.SetSuggestionTypes([]string{"conjunction"})
+      	return out, nil
+      }
+      return partial, nil
+  /*
+    if trailing.kind == "cursor" {
+      return {
+        ...trailing,
+        suggestionTypes: ["conjunction"]
+      }
+    }
+    return partial
+    */
+  }
+  / Value
+
+OrListOfValues
+  = partialLeft:AndListOfValues Or partialRight:OrListOfValues {
+	var cursor *CursorNode
+
+	if leftNode, _ := partialLeft.(INode); leftNode != nil && leftNode.GetType() == TypeCursor {
+		cursor, _ = leftNode.(*CursorNode)
+	}
+	if cursor == nil {
+		if rightNode, _ := partialRight.(INode); rightNode != nil && rightNode.GetType() == TypeCursor {
+			cursor, _ = rightNode.(*CursorNode)
+		}
+	}
+	if cursor != nil {
+		out := cursor.Copy()
+		out.SetSuggestionTypes([]string{"value"})
+		return out, nil
+	}
+
+	fn := func(field INode) INode {
+		var lValue INode
+		var rValue INode
+		if fnLeft, _ := partialLeft.(func(INode) INode); fnLeft != nil {
+			lValue = fnLeft(field)
+		}
+		if fnRight, _ := partialRight.(func(INode) INode); fnRight != nil {
+			lValue = fnRight(field)
+		}
+		return NewFunctionOr(lValue, rValue)
+	}
+	return fn, nil
+  /*
+    const cursor = [partialLeft, partialRight].find(node => node.kind == "cursor")
+    if (cursor) {
+      return {
+        ...cursor,
+        suggestionTypes: ["value"]
+      }
+    }
+    return (field) => buildFunctionNode("or", [partialLeft(field), partialRight(field)])
+    */
+  }
+  / AndListOfValues
+
+AndListOfValues
+  = partialLeft:NotListOfValues And partialRight:AndListOfValues {
+	var cursor *CursorNode
+
+	if leftNode, _ := partialLeft.(INode); leftNode != nil && leftNode.GetType() == TypeCursor {
+		cursor, _ = leftNode.(*CursorNode)
+	}
+	if cursor == nil {
+		if rightNode, _ := partialRight.(INode); rightNode != nil && rightNode.GetType() == TypeCursor {
+			cursor, _ = rightNode.(*CursorNode)
+		}
+	}
+	if cursor != nil {
+		cloned := cursor.Copy()
+		cloned.SetSuggestionTypes([]string{"value"})
+		return cloned, nil
+	}
+	fnLeft, _ := partialLeft.(func (INode)INode)
+	if fnLeft == nil {
+		return nil,errors.New("andListOfValues: nil left")
+	}
+	fnRight, _ := partialRight.(func (INode)INode)
+	if fnRight == nil {
+		return nil,errors.New("andListOfValues: nil right")
+	}
+
+	fn := func(field INode) INode {
+		return NewFunctionAnd(fnLeft(field), fnRight(field))
+	}
+	return fn, nil
+  /*
+    const cursor = [partialLeft, partialRight].find(node => node.kind == "cursor")
+    if cursor != nil {
+      return {
+        ...cursor,
+        suggestionTypes: ["value"]
+      }
+    }
+    return (field) => buildFunctionNode("and", [partialLeft(field), partialRight(field)])
+    */
+  }
+  / NotListOfValues
+
+NotListOfValues
+  = Not partial:ListOfValues {
+    partialNode, _ := partial.(INode)
+	if partialNode != nil && partialNode.GetType() == TypeCursor {
+		cursorNode := partialNode.(*CursorNode)
+		clonedNode := cursorNode.Copy()
+		clonedNode.SetSuggestionTypes([]string{"value"})
+		return clonedNode, nil
+	}
+	partialFn, _ := partial.(func(field INode) INode)
+	if partialFn == nil {
+		return nil, errors.New("invalid fn")
+	}
+	fn := func(field INode) INode {
+		res := partialFn(field)
+		return NewFunctionNot(res)
+	}
+	return fn, nil
+  /*
+    if partial.kind == "cursor" {
+      return {
+        ...list,
+        suggestionTypes: ["value"]
+      }
+    }
+    return (field) => buildFunctionNode("not", [partial(field)])
+    */
+  }
+  / ListOfValues
+
+Value "value"
+  = value:QuotedString {
+	valueNode, _ := value.(INode)
+	if valueNode != nil && valueNode.GetType() == TypeCursor {
+		return valueNode, nil
+	}
+	fn := func(fieldNode INode) INode {
+		isPhraseNode := NewLiteralNode(true)
+		return NewFunctionIs(fieldNode, valueNode, isPhraseNode)
+	}
+	return fn, nil
+  /*
+    if value.kind == "cursor" {
+      return value
+    }
+    const isPhrase = buildLiteralNode(true)
+    return (field) => buildFunctionNode("is", [field, value, isPhrase])
+    */
+  }
+  / value:UnquotedLiteral {
+	valueNode, _ := value.(INode)
+	if valueNode != nil && valueNode.GetType() == TypeCursor {
+		return valueNode, nil
+	}
+
+	if !allowLeadingWildcards && valueNode.GetType() == TypeWildcard {
+		if node, ok := valueNode.(*WildcardNode); ok && node != nil {
+			if node.HasLeadingWildcard() {
+				return nil, errors.New("leading wildcards are disabled")
+			}
+		}
+	}
+
+	fn := func(field INode) INode {
+		isPhraseNode := NewLiteralNode(nil) // --> prev : false
+		return NewFunctionIs(field, valueNode, isPhraseNode)
+	}
+	return fn, nil
+
+  /*
+    if value.kind == "cursor" {
+      return value
+    }
+
+    if !allowLeadingWildcards && value.kind == "wildcard" && nodeTypes.wildcard.hasLeadingWildcard(value) {
+      error("Leading wildcards are disabled. See query:allowLeadingWildcards in Advanced Settings.")
+    }
+
+    const isPhrase = buildLiteralNode(false)
+    return (field) => buildFunctionNode("is", [field, value, isPhrase])
+    */
+  }
+
+Or "OR"
+  = Space+ "or"i Space+
+  / &{ return false, nil /* errors.New("errorOnLuceneSyntax") */ } LuceneOr
+
+And "AND"
+  = Space+ "and"i Space+
+  / &{ return false, nil /* errors.New("errorOnLuceneSyntax") */ } LuceneAnd
+
+Not "NOT"
+  = "not"i Space+
+  / &{ return false, nil /* errors.New("errorOnLuceneSyntax") */ } LuceneNot
+
+Literal "literal"
+  = QuotedString / UnquotedLiteral
+
+QuotedString
+  = '"' prefix:QuotedCharacter* cursor:Cursor suffix:QuotedCharacter* '"' {
+	prefixString := Concat(prefix)
+	cursorString := Concat(cursor)
+	suffixString := Concat(suffix)
+	textString := string(c.text)
+	start := c.pos.offset
+	end := start + len(c.text) - len(cursorString)
+	cursorNode := NewCursorNode(start, end, prefixString, suffixString, strings.Replace(textString, cursorString, "", 1))
+	return cursorNode, nil
+  /*
+    const { start, end } = location()
+    return {
+      type: "cursor",
+      start: start.offset,
+      end: end.offset - cursor.length,
+      prefix: prefix.join(''),
+      suffix: suffix.join(''),
+      text: text().replace(cursor, '')
+    }
+    */
+  }
+  / '"' chars:QuotedCharacter* '"' {
+    node := NewLiteralNode(Concat(chars))
+    return node, nil
+  /*
+    return buildLiteralNode(chars.join(''))
+    */
+  }
+
+QuotedCharacter
+  = EscapedWhitespace
+  / '\\' char:[\\"] { return char, nil }
+  / !Cursor char:[^"] { return char, nil }
+
+UnquotedLiteral
+  = prefix:UnquotedCharacter* cursor:Cursor suffix:UnquotedCharacter* {
+	prefixString := Concat(prefix)
+	cursorString := Concat(cursor)
+	suffixString := Concat(suffix)
+	textString := string(c.text)
+	start := c.pos.offset
+	end := start + len(c.text) - len(cursorString)
+	cursorNode := NewCursorNode(start, end, prefixString, suffixString, strings.Replace(textString, cursorString, "", 1))
+	return cursorNode, nil
+  /*
+    const { start, end } = location()
+    return {
+      type: "cursor",
+      start: start.offset,
+      end: end.offset - cursor.length,
+      prefix: prefix.join(''),
+      suffix: suffix.join(''),
+      text: text().replace(cursor, '')
+    }
+    */
+  }
+  / chars:UnquotedCharacter+ {
+	sequence := Trim(Concat(chars))
+	switch sequence {
+	case "null":
+		return NewLiteralNode(nil), nil
+	case "true":
+		return NewLiteralNode(true), nil
+	case "false":
+		return NewLiteralNode(false), nil
+	}
+	if strings.Contains(sequence, WildcardSymbol) {
+		return NewWildcardNode(sequence), nil
+	}
+
+	if s, err := strconv.ParseFloat(sequence, 64); err == nil {
+		return NewLiteralNode(s), nil
+	}
+	return NewLiteralNode(sequence), nil
+  /*
+    const sequence = chars.join('').trim()
+    if (sequence == "null") return buildLiteralNode(nil)
+    if (sequence == "true") return buildLiteralNode(true)
+    if (sequence == "false") return buildLiteralNode(false)
+    if (chars.includes(wildcardSymbol)) return buildWildcardNode(sequence)
+    const number = Number(sequence)
+    const value = isNaN(number) ? sequence : number
+    return buildLiteralNode(value)
+    */
+  }
+
+UnquotedCharacter
+  = EscapedWhitespace
+  / EscapedSpecialCharacter
+  / EscapedKeyword
+  / Wildcard
+  / !SpecialCharacter !Keyword !Cursor char:. { return char, nil }
+
+Wildcard
+  = '*' { return WildcardSymbol, nil }
+
+OptionalSpace
+  = prefix:Space* cursor:Cursor suffix:Space* {
+	prefixString := Concat(prefix)
+	cursorString := Concat(cursor)
+	suffixString := Concat(suffix)
+	textString := string(c.text)
+	start := c.pos.offset
+	end := start + len(c.text) - len(cursorString)
+	cursorNode := NewCursorNode(start, end, prefixString, suffixString, strings.Replace(textString, cursorString, "", 1))
+	return cursorNode, nil
+  /*
+    const { start, end } = location()
+    return {
+      type: "cursor",
+      start: start.offset,
+      end: end.offset - cursor.length,
+      prefix: prefix.join(""),
+      suffix: suffix.join(""),
+      text: text().replace(cursor, "")
+    }
+    */
+  }
+  / Space*
+
+EscapedWhitespace
+  = "\\t" { return "\t", nil }
+  / "\\r" { return "\r", nil }
+  / "\\n" { return "\n", nil }
+
+EscapedSpecialCharacter
+  = '\\' char:SpecialCharacter { return char, nil }
+
+EscapedKeyword
+  = '\\' keyword:("or"i / "and"i / "not"i) { return keyword, nil }
+
+Keyword
+  = Or / And / Not
+
+SpecialCharacter
+  = [\\():<>"*{}]
+
+RangeOperator
+  = "<=" { return "lte", nil }
+  / ">=" { return "gte", nil }
+  / "<" { return "lt", nil }
+  / ">" { return "gt", nil }
+
+
+Space
+  = [ \t\r\n]
+
+whitespace
+  = [ \t\r\n]
+
+Cursor
+  = &{
+    return parseCursor, nil
+  } "@kuery-cursor@" {
+  return cursorSymbol, nil
+  /* return cursorSymbol */
+  }
+
+// Temporary error rules (to help users transition from Lucene... should be removed at some point)
+
+LuceneOr
+  =  Space* "||" Space* {
+    return nil, errors.New("luceneOr")
+    //error("LuceneOr")
+  }
+
+LuceneAnd
+  = Space* "&&" Space* {
+    return nil, errors.New("luceneAnd")
+    //error("LuceneAnd")
+  }
+  / "+" {
+    return nil, errors.New("luceneAnd")
+    //error("LuceneAnd")
+  }
+
+LuceneNot
+  = "-" {
+    return nil, errors.New("luceneNot")
+    //error("LuceneNot")
+  }
+  / "!" {
+    return nil, errors.New("luceneNot")
+    //error("LuceneNot")
+  }
+
+LuceneQuery
+  = LuceneFieldQuery
+  / LuceneValue
+  / LuceneExists
+
+LuceneFieldQuery
+  = LuceneLiteral Space* ':' Space* LuceneValue
+
+LuceneValue
+  = LuceneRange
+  / LuceneWildcard
+  / LuceneRegex
+  / LuceneFuzzy
+  / LuceneProximity
+  / LuceneBoost
+
+LuceneExists
+  = "_exists_" Space* ":" Space* LuceneLiteral {
+    return nil, errors.New("luceneExists")
+    //error("LuceneExists")
+  }
+
+LuceneRange
+  = RangeOperator Space* LuceneLiteral {
+    return nil, errors.New("luceneRange")
+    //error("LuceneRange")
+  }
+  / LuceneRangeStart Space* LuceneLiteral LuceneTo LuceneLiteral LuceneRangeEnd {
+    return nil, errors.New("luceneRange")
+    //error("LuceneRange")
+  }
+
+LuceneWildcard
+  = (LuceneUnquotedCharacter / '*')* '?' LuceneWildcard* {
+    return nil, errors.New("luceneWildcard")
+    //error("LuceneWildcard")
+  }
+
+LuceneRegex
+  = '/' [^/]* '/' {
+    return nil, errors.New("luceneRegex")
+    //error("LuceneRegex")
+  }
+
+LuceneFuzzy
+  = LuceneUnquotedLiteral '~' [0-9]* {
+    return nil, errors.New("luceneFuzzy")
+    //error("LuceneFuzzy")
+  }
+
+LuceneProximity
+  = QuotedString '~' [0-9]* {
+    return nil, errors.New("LuceneProximity")
+    //error('LuceneProximity')
+  }
+
+LuceneBoost
+  = LuceneLiteral '^' [0-9]* {
+    return nil, errors.New("LuceneBoost")
+    //error("LuceneBoost")
+  }
+
+LuceneLiteral
+  = QuotedString / LuceneUnquotedLiteral
+
+LuceneUnquotedLiteral
+  = LuceneUnquotedCharacter+
+
+LuceneUnquotedCharacter
+  = EscapedWhitespace
+  / EscapedLuceneSpecialCharacter
+  / !LuceneSpecialCharacter !LuceneKeyword .
+
+LuceneKeyword
+  = Or / And / LuceneOr / LuceneAnd / LuceneNot / LuceneTo
+
+EscapedLuceneSpecialCharacter
+  = '\\' LuceneSpecialCharacter {
+  	//TODO
+	return c.text, nil
+
+
+  /* return char */
+  }
+
+LuceneSpecialCharacter
+  = '+' / '-' / '=' / '>' / '<' / '!' / '(' / ')' / '{' / '}' / '[' / ']' / '^' / '"' / '~' / '*' / '?' / ':' / '\\' / '/'
+
+LuceneTo
+  = Space+ "TO" Space+
+
+LuceneRangeStart
+  = '[' / '{'
+
+LuceneRangeEnd
+  = ']' / '}'
