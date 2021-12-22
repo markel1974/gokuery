@@ -86,10 +86,9 @@ func GetFields(node INode, indexPattern *objects.IndexPattern) []*objects.Field 
 		return []*objects.Field{field}
 	}
 	if node.GetType() == TypeWildcard {
-		if wn, ok := node.(*WildcardNode); ok && wn != nil {
-			fields := indexPattern.Filter(func(field string) bool { return wn.Test(field) })
-			return fields
-		}
+		wn := node.(*WildcardNode)
+		fields := indexPattern.Filter(func(field string) bool { return wn.Test(field) })
+		return fields
 	}
 	return nil
 }

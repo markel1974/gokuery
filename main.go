@@ -23,7 +23,6 @@ import (
 	"github.com/markel1974/gokuery/src/nodes"
 	"github.com/markel1974/gokuery/src/objects"
 	"github.com/markel1974/gokuery/src/version"
-	"strings"
 )
 
 func main() {
@@ -64,22 +63,11 @@ func main() {
 			return
 		}
 	}
-
 	//const kRange = `account_number >= 100 and items_sold <= 200`
 	//const kRange = "(account_number >= 100 and items_sold <= 200) or k:10"
 	//const kNot = `NOT a:true* OR (k:11)`
 	//const t = `\+`
-	got, err := nodes.ParseReader("", strings.NewReader(kql))
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	res, _ := got.(nodes.INode)
-	if res == nil {
-		fmt.Println("can't cast to inode")
-		return
-	}
-	out, err := res.Compile(ip, cfg, ctx)
+	out, err := nodes.ParseKueryString(kql, ip, cfg, ctx)
 	if err != nil {
 		fmt.Println(err.Error())
 		return

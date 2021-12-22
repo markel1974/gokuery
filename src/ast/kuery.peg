@@ -30,11 +30,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 )
-
-//TODO From OPTIONS
-var parseCursor = false
-var cursorSymbol interface{} = nil
-var allowLeadingWildcards = false
 }
 
 start
@@ -458,6 +453,12 @@ Value "value"
 		return valueNode, nil
 	}
 
+    allowLeadingWildcards := false
+    cfg, _ := c.globalStore["config"].(*config.Config)
+    if cfg != nil {
+        allowLeadingWildcards = cfg.AllowLeadingWildcards
+    }
+
 	if !allowLeadingWildcards && valueNode.GetType() == TypeWildcard {
 		if node, ok := valueNode.(*WildcardNode); ok && node != nil {
 			if node.HasLeadingWildcard() {
@@ -654,9 +655,17 @@ whitespace
 
 Cursor
   = &{
-    return parseCursor, nil
+  	cfg, _ := c.globalStore["config"].(*config.Config)
+  	if cfg != nil {
+  		return cfg.ParseCursor, nil
+  	}
+    return false, nil
   } "@kuery-cursor@" {
-  return cursorSymbol, nil
+  	cfg, _ := c.globalStore["config"].(*config.Config)
+  	if cfg != nil {
+  		return cfg.CursorSymbol, nil
+  	}
+  	return nil, nil
   /* return cursorSymbol */
   }
 
