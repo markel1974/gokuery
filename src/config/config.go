@@ -15,9 +15,8 @@
 package config
 
 type Config struct {
-	EscapeQueryString bool   `json:"escapeQueryString"`
-	DateFormatTZ      string `json:"dateFormatTZ"`
-
+	EscapeQueryString     bool        `json:"escapeQueryString"`
+	DateFormatTZ          string      `json:"dateFormatTZ"`
 	ParseCursor           bool        `json:"parseCursor"`
 	CursorSymbol          interface{} `json:"cursorSymbol"`
 	AllowLeadingWildcards bool        `json:"allowLeadingWildcards"`
