@@ -161,9 +161,9 @@ func GetConvertedValueForField(field *objects.Field, value interface{}) (interfa
 
 func BuildInlineScriptForPhraseFilter(scriptedField *objects.Field) string {
 	if scriptedField.Lang == "painless" {
-		return `boolean compare(Supplier s, def v) {return s.get() == v;} compare(() -> { ${scriptedField.script} }, params.value);`
+		return `boolean compare(Supplier s, def v) {return s.get() == v;} compare(() -> {` + scriptedField.Script + `}, params.value);`
 	}
-	return "(${" + scriptedField.Script + "}) == value"
+	return `(` + scriptedField.Script + `) == value`
 }
 
 func GetPhraseScript(field *objects.Field, value string) (interface{}, error) {
