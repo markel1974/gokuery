@@ -14,12 +14,23 @@
 
 package context
 
+import "encoding/json"
+
 type Context struct {
 	Nested *Nested `json:"nested"`
 }
 
 func New() *Context {
 	return &Context{}
+}
+
+func Unmarshal(data []byte) (*Context, error) {
+	var ctx Context
+	err := json.Unmarshal(data, &ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &ctx, nil
 }
 
 func (ctx *Context) Clone() *Context {

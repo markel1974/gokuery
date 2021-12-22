@@ -31,3 +31,7 @@ type Field struct {
 	Scripted bool     `json:"scripted"`
 	Script   string   `json:"script"`
 }
+
+func NewField() *Field {
+	return &Field{}
+}

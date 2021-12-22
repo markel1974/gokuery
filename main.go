@@ -56,8 +56,8 @@ func main() {
 
 	var ip *objects.IndexPattern
 	if len(indexPattern) > 0 {
-		ip = objects.NewIndexPattern()
-		err := json.Unmarshal([]byte(indexPattern), &ip)
+		var err error
+		ip, err = objects.UnmarshalIndexPattern([]byte(indexPattern))
 		if err != nil {
 			fmt.Println(err.Error())
 			return

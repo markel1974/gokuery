@@ -14,10 +14,22 @@
 
 package objects
 
-import "errors"
+import (
+	"encoding/json"
+	"errors"
+)
 
 type IndexPattern struct {
 	fields []*Field
+}
+
+func UnmarshalIndexPattern(data []byte) (*IndexPattern, error) {
+	var ip IndexPattern
+	err := json.Unmarshal(data, &ip)
+	if err != nil {
+		return nil, err
+	}
+	return &ip, nil
 }
 
 func NewIndexPattern() *IndexPattern {

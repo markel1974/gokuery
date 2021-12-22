@@ -14,6 +14,8 @@
 
 package config
 
+import "encoding/json"
+
 type Config struct {
 	EscapeQueryString     bool        `json:"escapeQueryString"`
 	DateFormatTZ          string      `json:"dateFormatTZ"`
@@ -24,6 +26,15 @@ type Config struct {
 
 func New() *Config {
 	return &Config{}
+}
+
+func Unmarshal(data []byte) (*Config, error) {
+	var cfg Config
+	err := json.Unmarshal(data, &cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }
 
 func (cfg *Config) HasTimeZone() bool {
