@@ -3,9 +3,9 @@ package nodes
 import (
 	"errors"
 	"fmt"
-	"github.com/markel1974/kuery/src/config"
-	"github.com/markel1974/kuery/src/context"
-	"github.com/markel1974/kuery/src/objects"
+	"github.com/markel1974/gokuery/src/config"
+	"github.com/markel1974/gokuery/src/context"
+	"github.com/markel1974/gokuery/src/objects"
 )
 
 type FunctionIs struct {

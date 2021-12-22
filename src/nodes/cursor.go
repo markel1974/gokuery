@@ -1,9 +1,9 @@
 package nodes
 
 import (
-	"github.com/markel1974/kuery/src/config"
-	"github.com/markel1974/kuery/src/context"
-	"github.com/markel1974/kuery/src/objects"
+	"github.com/markel1974/gokuery/src/config"
+	"github.com/markel1974/gokuery/src/context"
+	"github.com/markel1974/gokuery/src/objects"
 )
 
 type CursorNode struct {

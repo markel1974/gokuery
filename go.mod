@@ -1,4 +1,4 @@
-module github.com/markel1974/kuery
+module github.com/markel1974/gokuery
 
 go 1.14
 

@@ -3,7 +3,7 @@ package nodes
 import (
 	"errors"
 	"fmt"
-	"github.com/markel1974/kuery/src/objects"
+	"github.com/markel1974/gokuery/src/objects"
 	"reflect"
 	"strings"
 )
