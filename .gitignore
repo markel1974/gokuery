@@ -6,6 +6,7 @@ vendor/
 src/legacy
 src/ast/pigeon
 
+.DS_Store
 
 # Object files
 *.o
