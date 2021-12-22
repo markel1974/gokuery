@@ -14,18 +14,16 @@
 
 package context
 
-type Context struct {
-	Nested *Nested `json:"nested"`
+type Nested struct {
+	Path string `json:"path"`
 }
 
-func New() *Context {
-	return &Context{}
+func NewNested() *Nested {
+	return &Nested{}
 }
 
-func (ctx *Context) Clone() *Context {
-	z := New()
-	if ctx.Nested != nil {
-		z.Nested = ctx.Nested.Clone()
-	}
+func (n *Nested) Clone() *Nested {
+	z := NewNested()
+	z.Path = n.Path
 	return z
 }

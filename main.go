@@ -19,6 +19,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/markel1974/gokuery/src/config"
+	"github.com/markel1974/gokuery/src/context"
 	"github.com/markel1974/gokuery/src/nodes"
 	"github.com/markel1974/gokuery/src/objects"
 	"github.com/markel1974/gokuery/src/version"
@@ -49,8 +50,10 @@ func main() {
 		return
 	}
 
-	cfg := config.NewConfig()
+	cfg := config.New()
 	cfg.EscapeQueryString = escapeQueryString
+
+	ctx := context.New()
 
 	var ip *objects.IndexPattern
 	if len(indexPattern) > 0 {
@@ -76,7 +79,7 @@ func main() {
 		fmt.Println("can't cast to inode")
 		return
 	}
-	out, err := res.Compile(ip, cfg, nil)
+	out, err := res.Compile(ip, cfg, ctx)
 	if err != nil {
 		fmt.Println(err.Error())
 		return

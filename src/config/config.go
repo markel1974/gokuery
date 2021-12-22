@@ -19,7 +19,7 @@ type Config struct {
 	DateFormatTZ      string `json:"dateFormatTZ"`
 }
 
-func NewConfig() *Config {
+func New() *Config {
 	return &Config{}
 }
 
