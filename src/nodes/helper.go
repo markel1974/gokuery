@@ -17,57 +17,13 @@ package nodes
 import (
 	"errors"
 	"fmt"
+	"github.com/markel1974/gokuery/src/config"
+	"github.com/markel1974/gokuery/src/context"
 	"github.com/markel1974/gokuery/src/objects"
-	"reflect"
+	"io"
+	"io/ioutil"
 	"strings"
 )
-
-func Concat(src interface{}) string {
-	var seq []byte
-	data, _ := src.([]interface{})
-	for _, x := range data {
-		switch d := x.(type) {
-		case byte:
-			seq = append(seq, d)
-		case []byte:
-			seq = append(seq, d...)
-		case string:
-			seq = append(seq, []byte(d)...)
-		}
-	}
-	return string(seq)
-}
-
-func Trim(src string) string {
-	return strings.Trim(src, " \r\n\t")
-}
-
-func Reduce(source, initialValue, reducer interface{}) (interface{}, error) {
-	srcV := reflect.ValueOf(source)
-	kind := srcV.Kind()
-	if kind != reflect.Slice && kind != reflect.Array {
-		return nil, errors.New("source value is not an array")
-	}
-	if reducer == nil {
-		return nil, errors.New("reducer function cannot be nil")
-	}
-	rv := reflect.ValueOf(reducer)
-	if rv.Kind() != reflect.Func {
-		return nil, errors.New("reducer argument must be a function")
-	}
-	accumulator := initialValue
-	accV := reflect.ValueOf(accumulator)
-	for i := 0; i < srcV.Len(); i++ {
-		entry := srcV.Index(i)
-		reduceResults := rv.Call([]reflect.Value{
-			accV,
-			entry,
-			reflect.ValueOf(i),
-		})
-		accV = reduceResults[0]
-	}
-	return accV.Interface(), nil
-}
 
 func GetFields(node INode, indexPattern *objects.IndexPattern) []*objects.Field {
 	if node.GetType() == TypeLiteral {
@@ -181,4 +137,28 @@ func GetPhraseScript(field *objects.Field, value string) (interface{}, error) {
 		},
 	}
 	return q, nil
+}
+
+func ParseKueryString(kql string, ip *objects.IndexPattern, cfg *config.Config, ctx *context.Context) (interface{}, error) {
+	got, err := ParseReader("", strings.NewReader(kql), GlobalStore("config", cfg))
+	if err != nil {
+		return nil, err
+	}
+	res, _ := got.(INode)
+	if res == nil {
+		return nil, errors.New("can't cast to inode")
+	}
+	out, err := res.Compile(ip, cfg, ctx)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func ParseKueryReader(r io.Reader, ip *objects.IndexPattern, cfg *config.Config, ctx *context.Context) (interface{}, error) {
+	out, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return ParseKueryString(string(out), ip, cfg, ctx)
 }

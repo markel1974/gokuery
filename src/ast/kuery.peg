@@ -29,6 +29,8 @@ import (
 	"sync"
 	"unicode"
 	"unicode/utf8"
+    "github.com/markel1974/gokuery/src/config"
+    "github.com/markel1974/gokuery/src/utils"
 )
 }
 
@@ -262,7 +264,7 @@ ValueExpression
   partialNode, _ := partial.(INode)
   if partialNode != nil && partialNode.GetType() == TypeCursor {
       cursorNode := partialNode.(*CursorNode)
-      fieldName := Trim(cursorNode.GetPrefix() + cursorNode.GetSuffix())
+      fieldName := utils.Trim(cursorNode.GetPrefix() + cursorNode.GetSuffix())
       out := cursorNode.Copy()
       out.SetFieldName(fieldName)
       out.SetSuggestionTypes([]string{"field", "operator", "conjunction"})
@@ -504,9 +506,9 @@ Literal "literal"
 
 QuotedString
   = '"' prefix:QuotedCharacter* cursor:Cursor suffix:QuotedCharacter* '"' {
-	prefixString := Concat(prefix)
-	cursorString := Concat(cursor)
-	suffixString := Concat(suffix)
+	prefixString := utils.Concat(prefix)
+	cursorString := utils.Concat(cursor)
+	suffixString := utils.Concat(suffix)
 	textString := string(c.text)
 	start := c.pos.offset
 	end := start + len(c.text) - len(cursorString)
@@ -525,7 +527,7 @@ QuotedString
     */
   }
   / '"' chars:QuotedCharacter* '"' {
-    node := NewLiteralNode(Concat(chars))
+    node := NewLiteralNode(utils.Concat(chars))
     return node, nil
   /*
     return buildLiteralNode(chars.join(''))
@@ -539,9 +541,9 @@ QuotedCharacter
 
 UnquotedLiteral
   = prefix:UnquotedCharacter* cursor:Cursor suffix:UnquotedCharacter* {
-	prefixString := Concat(prefix)
-	cursorString := Concat(cursor)
-	suffixString := Concat(suffix)
+	prefixString := utils.Concat(prefix)
+	cursorString := utils.Concat(cursor)
+	suffixString := utils.Concat(suffix)
 	textString := string(c.text)
 	start := c.pos.offset
 	end := start + len(c.text) - len(cursorString)
@@ -560,7 +562,7 @@ UnquotedLiteral
     */
   }
   / chars:UnquotedCharacter+ {
-	sequence := Trim(Concat(chars))
+	sequence := utils.Trim(utils.Concat(chars))
 	switch sequence {
 	case "null":
 		return NewLiteralNode(nil), nil
@@ -601,9 +603,9 @@ Wildcard
 
 OptionalSpace
   = prefix:Space* cursor:Cursor suffix:Space* {
-	prefixString := Concat(prefix)
-	cursorString := Concat(cursor)
-	suffixString := Concat(suffix)
+	prefixString := utils.Concat(prefix)
+	cursorString := utils.Concat(cursor)
+	suffixString := utils.Concat(suffix)
 	textString := string(c.text)
 	start := c.pos.offset
 	end := start + len(c.text) - len(cursorString)

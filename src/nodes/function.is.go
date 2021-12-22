@@ -20,6 +20,7 @@ import (
 	"github.com/markel1974/gokuery/src/config"
 	"github.com/markel1974/gokuery/src/context"
 	"github.com/markel1974/gokuery/src/objects"
+	"github.com/markel1974/gokuery/src/utils"
 )
 
 type FunctionIs struct {
@@ -138,7 +139,7 @@ func (f *FunctionIs) Compile(indexPattern *objects.IndexPattern, cfg *config.Con
 
 	var initial map[string]interface{}
 
-	queries, err := Reduce(fields, initial, func(accumulator map[string]interface{}, field *objects.Field, idx int) interface{} {
+	queries, err := utils.Reduce(fields, initial, func(accumulator map[string]interface{}, field *objects.Field, idx int) interface{} {
 		wrapWithNestedQuery := func(query interface{}) interface{} {
 			var nested *objects.Nested
 			var nestedPath string
