@@ -5,6 +5,7 @@ vendor/
 
 src/legacy
 src/ast/pigeon
+src/nodes/namedarg.go
 
 .DS_Store
 
