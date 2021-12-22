@@ -1,9 +1,9 @@
 package nodes
 
 import (
-	"markel/home/kuery/src/config"
-	"markel/home/kuery/src/context"
-	"markel/home/kuery/src/objects"
+	"github.com/markel1974/kuery/src/config"
+	"github.com/markel1974/kuery/src/context"
+	"github.com/markel1974/kuery/src/objects"
 )
 
 type NodeType int
@@ -17,7 +17,7 @@ const (
 
 type INode interface {
 	GetType() NodeType
-	Compile(indexPattern * objects.IndexPattern, cfg * config.Config, ctx * context.Context) (interface{}, error)
+	Compile(indexPattern *objects.IndexPattern, cfg *config.Config, ctx *context.Context) (interface{}, error)
 	GetValue() interface{}
 	SetValue(value interface{})
 	Clone() INode

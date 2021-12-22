@@ -3,11 +3,10 @@ package nodes
 import (
 	"errors"
 	"fmt"
-	"markel/home/kuery/src/config"
-	"markel/home/kuery/src/context"
-	"markel/home/kuery/src/objects"
+	"github.com/markel1974/kuery/src/config"
+	"github.com/markel1974/kuery/src/context"
+	"github.com/markel1974/kuery/src/objects"
 )
-
 
 type FunctionIs struct {
 	fieldNameArg INode
@@ -25,28 +24,28 @@ func NewFunctionIs(fieldNameArg INode, valueArg INode, isPhraseArg INode) INode 
 	return f
 }
 
-func (f * FunctionIs) GetType() NodeType {
+func (f *FunctionIs) GetType() NodeType {
 	return TypeFunction
 }
 
-func (f * FunctionIs) GetValue() interface{} {
+func (f *FunctionIs) GetValue() interface{} {
 	return f.value
 }
 
-func (f * FunctionIs) SetValue(value interface{}) {
+func (f *FunctionIs) SetValue(value interface{}) {
 	f.value = value
 }
 
-func (f * FunctionIs) Clone() INode {
+func (f *FunctionIs) Clone() INode {
 	out := &FunctionIs{
 		fieldNameArg: f.fieldNameArg,
-		valueArg: f.valueArg,
-		isPhraseArg: f.isPhraseArg,
+		valueArg:     f.valueArg,
+		isPhraseArg:  f.isPhraseArg,
 	}
 	return out
 }
 
-func (f * FunctionIs) Compile(indexPattern * objects.IndexPattern, cfg * config.Config, ctx * context.Context) (interface{}, error) {
+func (f *FunctionIs) Compile(indexPattern *objects.IndexPattern, cfg *config.Config, ctx *context.Context) (interface{}, error) {
 	if f.fieldNameArg == nil {
 		return nil, errors.New("missing field")
 	}
@@ -94,8 +93,8 @@ func (f * FunctionIs) Compile(indexPattern * objects.IndexPattern, cfg * config.
 		}
 		q := map[string]interface{}{
 			"multi_match": map[string]interface{}{
-				"type": kind,
-				"query": elValue,
+				"type":    kind,
+				"query":   elValue,
 				"lenient": true,
 			},
 		}
@@ -110,7 +109,7 @@ func (f * FunctionIs) Compile(indexPattern * objects.IndexPattern, cfg * config.
 	}
 
 	if len(fields) == 0 {
-		fields = append(fields, &objects.Field{ Name: fieldName, Scripted: false })
+		fields = append(fields, &objects.Field{Name: fieldName, Scripted: false})
 	}
 	isExistsQuery := f.valueArg.GetType() == TypeWildcard && elValue == "*"
 	isAllFieldsQuery := fullFieldNameArg.GetType() == TypeWildcard && fieldName == "*" || indexPattern != nil && len(fields) == indexPattern.FieldsLen()
@@ -136,7 +135,7 @@ func (f * FunctionIs) Compile(indexPattern * objects.IndexPattern, cfg * config.
 			if !(fullFieldNameArg.GetType() == TypeWildcard) || nested == nil || ctx.Nested != nil {
 				return query
 			} else {
-				return map[string]interface{}{ "nested": map[string]interface{}{ "path": nestedPath, "query": query, "score_mode": "none" }}
+				return map[string]interface{}{"nested": map[string]interface{}{"path": nestedPath, "query": query, "score_mode": "none"}}
 			}
 		}
 
@@ -164,9 +163,9 @@ func (f * FunctionIs) Compile(indexPattern * objects.IndexPattern, cfg * config.
 			if accumulator != nil {
 				x = append(x, accumulator)
 			}
-			q := map[string]interface{} {
-				"exists": map[string]interface{} {
-					"field": field.Name },
+			q := map[string]interface{}{
+				"exists": map[string]interface{}{
+					"field": field.Name},
 			}
 			x = append(x, wrapWithNestedQuery(q))
 			return x
@@ -178,10 +177,10 @@ func (f * FunctionIs) Compile(indexPattern * objects.IndexPattern, cfg * config.
 			if accumulator != nil {
 				x = append(x, accumulator)
 			}
-			q := map[string]interface{} {
-				"query_string": map[string] interface{} {
-					"fields": []string{ field.Name },
-					"query": wildcard.ToQueryStringQuery(cfg.EscapeQueryString),
+			q := map[string]interface{}{
+				"query_string": map[string]interface{}{
+					"fields": []string{field.Name},
+					"query":  wildcard.ToQueryStringQuery(cfg.EscapeQueryString),
 				},
 			}
 			x = append(x, wrapWithNestedQuery(q))
@@ -193,15 +192,15 @@ func (f * FunctionIs) Compile(indexPattern * objects.IndexPattern, cfg * config.
 			if accumulator != nil {
 				x = append(x, accumulator)
 			}
-			qRange := map[string]interface{} {
+			qRange := map[string]interface{}{
 				"gte": elValue,
 				"lte": elValue,
 			}
 			if cfg != nil && cfg.HasTimeZone() {
 				qRange["time_zone"] = cfg.GetTimeZone()
 			}
-			q := map[string]interface{} {
-				"range": map[string]interface{} {
+			q := map[string]interface{}{
+				"range": map[string]interface{}{
 					field.Name: qRange,
 				},
 			}
@@ -228,9 +227,9 @@ func (f * FunctionIs) Compile(indexPattern * objects.IndexPattern, cfg * config.
 		return x
 	})
 
-	return map[string]interface{} {
-	"bool": map[string]interface{}{
-		"should":               queries,
-		"minimum_should_match": 1,
-	}}, nil
+	return map[string]interface{}{
+		"bool": map[string]interface{}{
+			"should":               queries,
+			"minimum_should_match": 1,
+		}}, nil
 }

@@ -3,9 +3,9 @@ package nodes
 import (
 	"errors"
 	"fmt"
-	"markel/home/kuery/src/config"
-	"markel/home/kuery/src/context"
-	"markel/home/kuery/src/objects"
+	"github.com/markel1974/kuery/src/config"
+	"github.com/markel1974/kuery/src/context"
+	"github.com/markel1974/kuery/src/objects"
 	"strings"
 )
 
@@ -24,22 +24,22 @@ func NewFunctionRange(field INode, opNode INode, argNode INode) INode {
 	return f
 }
 
-func (f * FunctionRange) GetType() NodeType {
+func (f *FunctionRange) GetType() NodeType {
 	return TypeFunction
 }
 
-func (f * FunctionRange) GetValue() interface{} {
+func (f *FunctionRange) GetValue() interface{} {
 	return nil
 }
 
-func (f * FunctionRange) SetValue(_ interface{}) {
+func (f *FunctionRange) SetValue(_ interface{}) {
 }
 
-func (f * FunctionRange) Clone() INode {
+func (f *FunctionRange) Clone() INode {
 	return NewFunctionRange(f.field, f.opNode, f.argNode)
 }
 
-func (f * FunctionRange) Compile(indexPattern * objects.IndexPattern, cfg * config.Config, ctx * context.Context) (interface{}, error) {
+func (f *FunctionRange) Compile(indexPattern *objects.IndexPattern, cfg *config.Config, ctx *context.Context) (interface{}, error) {
 	if f.field == nil {
 		return nil, errors.New("range: missing field")
 	}
@@ -49,18 +49,19 @@ func (f * FunctionRange) Compile(indexPattern * objects.IndexPattern, cfg * conf
 	var arg interface{}
 
 	if f.opNode != nil {
-		if v :=  f.opNode.GetValue(); v != nil {
+		if v := f.opNode.GetValue(); v != nil {
 			op = strings.ToLower(fmt.Sprintf("%v", v))
 		}
 	}
 
 	switch op {
-		case "gt", "lt", "gte", "lte", "format":
-		default: return nil, errors.New("range: invalid op " + op)
+	case "gt", "lt", "gte", "lte", "format":
+	default:
+		return nil, errors.New("range: invalid op " + op)
 	}
 
 	if f.argNode != nil {
-		if v :=  f.argNode.GetValue(); v != nil {
+		if v := f.argNode.GetValue(); v != nil {
 			arg = v
 		}
 	}
@@ -72,7 +73,7 @@ func (f * FunctionRange) Compile(indexPattern * objects.IndexPattern, cfg * conf
 	if len(fields) == 0 {
 		v, _ := fieldNameArg.Compile(nil, nil, nil)
 		name := fmt.Sprintf("%v", v)
-		fields = append(fields, &objects.Field{ Name: name, Scripted: false })
+		fields = append(fields, &objects.Field{Name: name, Scripted: false})
 	}
 
 	var queries []interface{}
@@ -108,14 +109,14 @@ func (f * FunctionRange) Compile(indexPattern * objects.IndexPattern, cfg * conf
 		}
 
 		if field.Type == "date" {
-			qRange := map[string] interface{} {
+			qRange := map[string]interface{}{
 				op: arg,
 			}
 			if cfg != nil && cfg.HasTimeZone() {
 				qRange["time_zone"] = cfg.GetTimeZone()
 			}
-			q := map[string]interface{} {
-				"range": map[string] interface{} {
+			q := map[string]interface{}{
+				"range": map[string]interface{}{
 					field.Name: qRange,
 				},
 			}
@@ -123,9 +124,9 @@ func (f * FunctionRange) Compile(indexPattern * objects.IndexPattern, cfg * conf
 			continue
 		}
 
-		q := map[string]interface{} {
-			"range": map[string] interface{} {
-				field.Name: map[string] interface{} {
+		q := map[string]interface{}{
+			"range": map[string]interface{}{
+				field.Name: map[string]interface{}{
 					op: arg,
 				},
 			},
@@ -133,9 +134,9 @@ func (f * FunctionRange) Compile(indexPattern * objects.IndexPattern, cfg * conf
 		queries = append(queries, wrapWithNestedQuery(q))
 	}
 
-	return map[string]interface{} {
-		"bool": map[string]interface{} {
-			"should": queries,
+	return map[string]interface{}{
+		"bool": map[string]interface{}{
+			"should":               queries,
 			"minimum_should_match": 1,
 		},
 	}, nil

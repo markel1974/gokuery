@@ -1,9 +1,9 @@
 package nodes
 
 import (
-	"markel/home/kuery/src/config"
-	"markel/home/kuery/src/context"
-	"markel/home/kuery/src/objects"
+	"github.com/markel1974/kuery/src/config"
+	"github.com/markel1974/kuery/src/context"
+	"github.com/markel1974/kuery/src/objects"
 	"regexp"
 	"strings"
 )
@@ -32,42 +32,41 @@ func EscapeQueryString(src string) string {
 	return res
 }
 
-
 type WildcardNode struct {
 	value string
 }
 
 func NewWildcardNode(value string) INode {
- 	w := &WildcardNode{
- 		value: value,
+	w := &WildcardNode{
+		value: value,
 	}
 	return w
 }
 
-func (w * WildcardNode) GetType() NodeType {
+func (w *WildcardNode) GetType() NodeType {
 	return TypeWildcard
 }
 
-func (w * WildcardNode) GetValue() interface{} {
+func (w *WildcardNode) GetValue() interface{} {
 	return w.value
 }
 
-func (w * WildcardNode) SetValue(value interface{}) {
+func (w *WildcardNode) SetValue(value interface{}) {
 	if v, ok := value.(string); ok {
 		w.value = v
 	}
 }
 
-func (w * WildcardNode) Clone() INode {
+func (w *WildcardNode) Clone() INode {
 	return NewWildcardNode(w.value)
 }
 
-func (w * WildcardNode) Compile(_ * objects.IndexPattern, _ * config.Config, _ * context.Context) (interface{}, error) {
+func (w *WildcardNode) Compile(_ *objects.IndexPattern, _ *config.Config, _ *context.Context) (interface{}, error) {
 	out := strings.Replace(w.value, WildcardSymbol, "*", -1)
 	return out, nil
 }
 
-func (w * WildcardNode) ToQueryStringQuery(escape bool) string {
+func (w *WildcardNode) ToQueryStringQuery(escape bool) string {
 	values := strings.Split(w.value, WildcardSymbol)
 	var res []string
 	for _, v := range values {
@@ -81,19 +80,19 @@ func (w * WildcardNode) ToQueryStringQuery(escape bool) string {
 	return out
 }
 
-func (w * WildcardNode) HasLeadingWildcard() bool {
+func (w *WildcardNode) HasLeadingWildcard() bool {
 	out := strings.HasPrefix(w.value, WildcardSymbol) && len(strings.Replace(w.value, WildcardSymbol, "", -1)) > 0
 	return out
 }
 
-func (w * WildcardNode) Test(src string) bool {
+func (w *WildcardNode) Test(src string) bool {
 	var p []string
 	for _, v := range strings.Split(w.value, WildcardSymbol) {
 		if r := EscapeRegExp(v); len(r) > 0 {
 			p = append(p, r)
 		}
 	}
-	regex := strings.Join(p,"[\\s\\S]*")
+	regex := strings.Join(p, "[\\s\\S]*")
 	rgx, err := regexp.Compile("^$" + regex + "$")
 	if err != nil {
 		return false

@@ -3,40 +3,40 @@ package nodes
 import (
 	"errors"
 	"fmt"
-	"markel/home/kuery/src/config"
-	"markel/home/kuery/src/context"
-	"markel/home/kuery/src/objects"
+	"github.com/markel1974/kuery/src/config"
+	"github.com/markel1974/kuery/src/context"
+	"github.com/markel1974/kuery/src/objects"
 )
 
 type FunctionNested struct {
-	path INode
+	path  INode
 	child INode
 }
 
 func NewFunctionNested(path INode, child INode) INode {
 	f := &FunctionNested{
-		path: path,
+		path:  path,
 		child: child,
 	}
 	return f
 }
 
-func (f * FunctionNested) GetType() NodeType {
+func (f *FunctionNested) GetType() NodeType {
 	return TypeFunction
 }
 
-func (f * FunctionNested) GetValue() interface{} {
+func (f *FunctionNested) GetValue() interface{} {
 	return nil
 }
 
-func (f * FunctionNested) SetValue(_ interface{}) {
+func (f *FunctionNested) SetValue(_ interface{}) {
 }
 
-func (f * FunctionNested) Clone() INode {
+func (f *FunctionNested) Clone() INode {
 	return NewFunctionNested(f.path, f.child)
 }
 
-func (f * FunctionNested) Compile(indexPattern * objects.IndexPattern, cfg * config.Config, ctx * context.Context) (interface{}, error) {
+func (f *FunctionNested) Compile(indexPattern *objects.IndexPattern, cfg *config.Config, ctx *context.Context) (interface{}, error) {
 	if f.path == nil {
 		return nil, errors.New("nested: nil path")
 	}
@@ -64,10 +64,10 @@ func (f * FunctionNested) Compile(indexPattern * objects.IndexPattern, cfg * con
 		return nil, err
 	}
 
-	q := map[string] interface {} {
-		"nested": map[string] interface {} {
-			"path": fullPath,
-			"query": child,
+	q := map[string]interface{}{
+		"nested": map[string]interface{}{
+			"path":       fullPath,
+			"query":      child,
 			"score_mode": "none",
 		},
 	}

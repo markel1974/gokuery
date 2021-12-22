@@ -3,9 +3,9 @@ package nodes
 import (
 	"errors"
 	"fmt"
-	"markel/home/kuery/src/config"
-	"markel/home/kuery/src/context"
-	"markel/home/kuery/src/objects"
+	"github.com/markel1974/kuery/src/config"
+	"github.com/markel1974/kuery/src/context"
+	"github.com/markel1974/kuery/src/objects"
 )
 
 type FunctionExists struct {
@@ -21,22 +21,22 @@ func NewFunctionExists(fieldName string) *FunctionExists {
 	return f
 }
 
-func (f * FunctionExists) GetType() NodeType {
+func (f *FunctionExists) GetType() NodeType {
 	return TypeFunction
 }
 
-func (f * FunctionExists) GetValue() interface{} {
+func (f *FunctionExists) GetValue() interface{} {
 	return nil
 }
 
-func (f * FunctionExists) SetValue(_ interface{}) {
+func (f *FunctionExists) SetValue(_ interface{}) {
 }
 
-func (f * FunctionExists) Clone() INode {
+func (f *FunctionExists) Clone() INode {
 	return NewFunctionExists(f.fieldName)
 }
 
-func (f * FunctionExists) Compile(indexPattern * objects.IndexPattern, _ * config.Config, ctx * context.Context) (interface{}, error) {
+func (f *FunctionExists) Compile(indexPattern *objects.IndexPattern, _ *config.Config, ctx *context.Context) (interface{}, error) {
 	if f.fieldNameArg == nil {
 		return nil, errors.New("missing field")
 	}
@@ -61,8 +61,8 @@ func (f * FunctionExists) Compile(indexPattern * objects.IndexPattern, _ * confi
 			return nil, errors.New("exists query does not support scripted fields")
 		}
 	}
-	out := map[string]interface{} {
-		"exists": map[string]interface{} {
+	out := map[string]interface{}{
+		"exists": map[string]interface{}{
 			"field": fieldName,
 		},
 	}

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"markel/home/kuery/src/config"
-	"markel/home/kuery/src/nodes"
-	"markel/home/kuery/src/version"
+	"github.com/markel1974/kuery/src/config"
+	"github.com/markel1974/kuery/src/nodes"
+	"github.com/markel1974/kuery/src/version"
 	"strings"
 )
 
