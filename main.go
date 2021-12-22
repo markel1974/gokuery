@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"markel/home/kuery/src/config"
 	"markel/home/kuery/src/nodes"
+	"markel/home/kuery/src/version"
 	"strings"
 )
 
@@ -24,8 +25,7 @@ func main() {
 		return
 	}
 	if showVersion {
-		//fmt.Println(version.AppName + " " + version.AppVersion)
-		fmt.Println("0" + " " + "1")
+		fmt.Println(version.AppName + " " + version.AppVersion)
 		return
 	}
 	//const kRange = `account_number >= 100 and items_sold <= 200`

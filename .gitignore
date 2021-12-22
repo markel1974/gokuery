@@ -3,6 +3,7 @@
 build/
 vendor/
 
+build
 src/legacy
 src/ast/pigeon
 
