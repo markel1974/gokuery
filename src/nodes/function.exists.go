@@ -50,7 +50,7 @@ func (f *FunctionExists) Clone() INode {
 	return NewFunctionExists(f.fieldName)
 }
 
-func (f *FunctionExists) Compile(indexPattern *objects.IndexPattern, _ *config.Config, ctx *context.Context) (interface{}, error) {
+func (f *FunctionExists) Compile(indexPattern *objects.IndexPattern, cfg *config.Config, ctx *context.Context) (interface{}, error) {
 	if f.fieldNameArg == nil {
 		return nil, errors.New("missing field")
 	}
@@ -65,7 +65,7 @@ func (f *FunctionExists) Compile(indexPattern *objects.IndexPattern, _ *config.C
 		}
 	}
 
-	fieldName, err := fullFieldNameArg.Compile(nil, nil, nil)
+	fieldName, err := fullFieldNameArg.Compile(indexPattern, cfg, ctx)
 	if err != nil {
 		return nil, err
 	}

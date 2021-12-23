@@ -68,23 +68,17 @@ func (f *FunctionIs) Compile(indexPattern *objects.IndexPattern, cfg *config.Con
 		return nil, errors.New("missing value")
 	}
 
-	var path string
-
-	if ctx != nil && ctx.Nested != nil {
-		path = ctx.Nested.Path
-	}
-
-	fullFieldNameArg, err := GetFullFieldNameNode(f.fieldNameArg, indexPattern, path)
+	fullFieldNameArg, err := GetFullFieldNameNode(f.fieldNameArg, indexPattern, cfg, ctx /*, path*/)
 	if err != nil {
 		return nil, err
 	}
 
-	elField, err := fullFieldNameArg.Compile(nil, nil, nil)
+	elField, err := fullFieldNameArg.Compile(indexPattern, cfg, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	elValue, err := f.valueArg.Compile(nil, nil, nil)
+	elValue, err := f.valueArg.Compile(indexPattern, cfg, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +114,7 @@ func (f *FunctionIs) Compile(indexPattern *objects.IndexPattern, cfg *config.Con
 	var fields []*objects.Field
 
 	if indexPattern != nil {
-		fields = GetFields(fullFieldNameArg, indexPattern)
+		fields = GetFields(fullFieldNameArg, indexPattern, cfg, ctx)
 	}
 
 	if len(fields) == 0 {

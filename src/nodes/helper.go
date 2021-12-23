@@ -25,9 +25,9 @@ import (
 	"strings"
 )
 
-func GetFields(node INode, indexPattern *objects.IndexPattern) []*objects.Field {
+func GetFields(node INode, indexPattern *objects.IndexPattern, cfg *config.Config, ctx *context.Context) []*objects.Field {
 	if node.GetType() == TypeLiteral {
-		q, err := node.Compile(nil, nil, nil)
+		q, err := node.Compile(indexPattern, cfg, ctx)
 		if err != nil {
 			return nil
 		}
@@ -49,8 +49,14 @@ func GetFields(node INode, indexPattern *objects.IndexPattern) []*objects.Field 
 	return nil
 }
 
-func GetFullFieldNameNode(rootNameNode INode, indexPattern *objects.IndexPattern, nestedPath string) (INode, error) {
+func GetFullFieldNameNode(rootNameNode INode, indexPattern *objects.IndexPattern, cfg *config.Config, ctx *context.Context) (INode, error) {
 	fullFieldNameNode := rootNameNode.Clone()
+
+	var nestedPath string
+
+	if ctx != nil && ctx.Nested != nil {
+		nestedPath = ctx.Nested.Path
+	}
 
 	if v := rootNameNode.GetValue(); v != nil {
 		path := fmt.Sprintf("%v", v)
@@ -64,7 +70,7 @@ func GetFullFieldNameNode(rootNameNode INode, indexPattern *objects.IndexPattern
 	if indexPattern == nil || fullFieldNameNode.GetType() == TypeWildcard && len(nestedPath) == 0 {
 		return fullFieldNameNode, nil
 	}
-	fields := GetFields(fullFieldNameNode, indexPattern)
+	fields := GetFields(fullFieldNameNode, indexPattern, cfg, ctx)
 	var errs []string
 	for _, field := range fields {
 		var nestedPathFromField string

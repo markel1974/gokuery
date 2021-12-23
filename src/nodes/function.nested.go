@@ -58,7 +58,7 @@ func (f *FunctionNested) Compile(indexPattern *objects.IndexPattern, cfg *config
 		return nil, errors.New("nested: nil child")
 	}
 
-	stringPath, err := f.path.Compile(nil, nil, nil)
+	stringPath, err := f.path.Compile(indexPattern, cfg, ctx)
 	if err != nil {
 		return nil, err
 	}

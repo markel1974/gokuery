@@ -82,10 +82,10 @@ func (f *FunctionRange) Compile(indexPattern *objects.IndexPattern, cfg *config.
 
 	var fields []*objects.Field
 	if indexPattern != nil {
-		fields = GetFields(fieldNameArg, indexPattern)
+		fields = GetFields(fieldNameArg, indexPattern, cfg, ctx)
 	}
 	if len(fields) == 0 {
-		v, _ := fieldNameArg.Compile(nil, nil, nil)
+		v, _ := fieldNameArg.Compile(indexPattern, cfg, ctx)
 		name := fmt.Sprintf("%v", v)
 		fields = append(fields, &objects.Field{Name: name, Scripted: false})
 	}
