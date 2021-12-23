@@ -94,13 +94,13 @@ func (f *FunctionRange) Compile(indexPattern *objects.IndexPattern, cfg *config.
 
 	for _, field := range fields {
 		wrapWithNestedQuery := func(query interface{}) interface{} {
-			var nested *objects.Nested
+			var subTypeNested *objects.Nested
 			var nestedPath string
 			if field.SubType != nil && field.SubType.Nested != nil {
-				nested = field.SubType.Nested
-				nestedPath = nested.Path
+				subTypeNested = field.SubType.Nested
+				nestedPath = subTypeNested.Path
 			}
-			if !(fieldNameArg.GetType() == TypeWildcard) || nested == nil || ctx.Nested != nil {
+			if fieldNameArg.GetType() != TypeWildcard || subTypeNested == nil || ctx.Nested != nil {
 				return query
 			} else {
 				return map[string]interface{}{
@@ -126,7 +126,7 @@ func (f *FunctionRange) Compile(indexPattern *objects.IndexPattern, cfg *config.
 			qRange := map[string]interface{}{
 				op: arg,
 			}
-			if cfg != nil && cfg.HasTimeZone() {
+			if cfg.HasTimeZone() {
 				qRange["time_zone"] = cfg.GetTimeZone()
 			}
 			q := map[string]interface{}{

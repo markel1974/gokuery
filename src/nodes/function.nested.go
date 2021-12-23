@@ -58,14 +58,12 @@ func (f *FunctionNested) Compile(indexPattern *objects.IndexPattern, cfg *config
 		return nil, errors.New("nested: nil child")
 	}
 
-	stringPath, err := f.path.Compile(indexPattern, cfg, ctx)
+	path, err := f.path.Compile(indexPattern, cfg, ctx)
 	if err != nil {
 		return nil, err
 	}
-	var fullPath string
-	if ctx.Nested != nil && len(ctx.Nested.Path) > 0 {
-		fullPath = ctx.Nested.Path + "." + fmt.Sprintf("%v", stringPath)
-	}
+
+	fullPath := ctx.UpdatePath(fmt.Sprintf("%v", path))
 
 	z := ctx.Clone()
 	if z.Nested == nil {

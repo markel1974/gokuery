@@ -14,7 +14,9 @@
 
 package context
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type Context struct {
 	Nested *Nested `json:"nested"`
@@ -39,4 +41,11 @@ func (ctx *Context) Clone() *Context {
 		z.Nested = ctx.Nested.Clone()
 	}
 	return z
+}
+
+func (ctx *Context) UpdatePath(path string) string {
+	if len(path) > 0 && ctx.Nested != nil && len(ctx.Nested.Path) > 0 {
+		return ctx.Nested.Path + "." + path
+	}
+	return path
 }

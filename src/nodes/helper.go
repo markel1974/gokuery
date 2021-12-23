@@ -54,7 +54,7 @@ func GetFullFieldNameNode(rootNameNode INode, indexPattern *objects.IndexPattern
 
 	var nestedPath string
 
-	if ctx != nil && ctx.Nested != nil {
+	if ctx.Nested != nil && len(ctx.Nested.Path) > 0 {
 		nestedPath = ctx.Nested.Path
 	}
 

@@ -56,13 +56,9 @@ func (f *FunctionExists) Compile(indexPattern *objects.IndexPattern, cfg *config
 	}
 	fullFieldNameArg := f.fieldNameArg.Clone()
 
-	if v := f.fieldNameArg.GetValue(); v != nil {
-		field := fmt.Sprintf("%v", v)
-		if ctx != nil && ctx.Nested != nil {
-			fullFieldNameArg.SetValue(ctx.Nested.Path + "." + field)
-		} else {
-			fullFieldNameArg.SetValue(field)
-		}
+	if val := f.fieldNameArg.GetValue(); val != nil {
+		fullPath := ctx.UpdatePath(fmt.Sprintf("%v", val))
+		fullFieldNameArg.SetValue(fullPath)
 	}
 
 	fieldName, err := fullFieldNameArg.Compile(indexPattern, cfg, ctx)

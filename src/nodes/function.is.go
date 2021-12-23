@@ -68,7 +68,7 @@ func (f *FunctionIs) Compile(indexPattern *objects.IndexPattern, cfg *config.Con
 		return nil, errors.New("missing value")
 	}
 
-	fullFieldNameArg, err := GetFullFieldNameNode(f.fieldNameArg, indexPattern, cfg, ctx /*, path*/)
+	fullFieldNameArg, err := GetFullFieldNameNode(f.fieldNameArg, indexPattern, cfg, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +205,7 @@ func (f *FunctionIs) Compile(indexPattern *objects.IndexPattern, cfg *config.Con
 				"gte": elValue,
 				"lte": elValue,
 			}
-			if cfg != nil && cfg.HasTimeZone() {
+			if cfg.HasTimeZone() {
 				qRange["time_zone"] = cfg.GetTimeZone()
 			}
 			q := map[string]interface{}{
