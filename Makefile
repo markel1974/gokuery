@@ -1,6 +1,7 @@
 #
 #	Makefile for Go Language code
 #
+
 SRC=main.go
 OUTNAME=kuery
 # Go compiler settings
