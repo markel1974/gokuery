@@ -107,7 +107,7 @@ func (w *WildcardNode) Test(src string) bool {
 		}
 	}
 	regex := strings.Join(p, "[\\s\\S]*")
-	rgx, err := regexp.Compile("^$" + regex + "$")
+	rgx, err := regexp.Compile("^" + regex + "$")
 	if err != nil {
 		return false
 	}
