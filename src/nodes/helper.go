@@ -145,13 +145,6 @@ func GetPhraseScript(field *objects.Field, value string) (interface{}, error) {
 	return q, nil
 }
 
-func ParseKueryStringEscape(kql string, ip *objects.IndexPattern, escape bool) (interface{}, error) {
-	ctx := context.New()
-	cfg := config.New()
-	cfg.EscapeQueryString = escape
-	return ParseKueryString(kql, ip, cfg, ctx)
-}
-
 func ParseKueryString(kql string, ip *objects.IndexPattern, cfg *config.Config, ctx *context.Context) (interface{}, error) {
 	got, err := ParseReader("", strings.NewReader(kql), GlobalStore("config", cfg))
 	if err != nil {
@@ -166,6 +159,14 @@ func ParseKueryString(kql string, ip *objects.IndexPattern, cfg *config.Config, 
 		return nil, err
 	}
 	return out, nil
+}
+
+func ParseKueryStringEscape(kql string, ip *objects.IndexPattern, escape bool) (interface{}, error) {
+	ctx := context.New()
+	cfg := config.New()
+	cfg.EscapeQueryString = escape
+	cfg.AllowLeadingWildcards = true
+	return ParseKueryString(kql, ip, cfg, ctx)
 }
 
 func ParseKueryReader(r io.Reader, ip *objects.IndexPattern, cfg *config.Config, ctx *context.Context) (interface{}, error) {
